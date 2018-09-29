@@ -44,6 +44,7 @@ int main(int argc, char *argv[])
     }
     else
         fdo = STDOUT_FILENO;
+
     // CHECK IF ZERO INPUT => IF TRUE, TREAT IT LIKE A "-" BY APPENDING "-" TO ARGV
     if (optind == argc)
     {
@@ -64,7 +65,7 @@ int main(int argc, char *argv[])
             throwError("Error: Unable to open the input file", argv[optind]);
         }
         // THE READ AND WRITE OPERATIONS WITH CORRECTION FOR PARTIAL WRITES
-        while ((amtRead = read(fdi, buff, sizeof(buff))) != 0)
+        while ((amtRead = read(fdi, buff, (sizeof(char)) * buffer)) != 0)
         {
             if (amtRead < 0)
             {
@@ -72,6 +73,7 @@ int main(int argc, char *argv[])
             }
             else
             {
+
                 while (amtWritten < amtRead)
                 {
                     if ((amtWritten = write(fdo, buff, amtRead)) < 0)
