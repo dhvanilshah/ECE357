@@ -24,7 +24,7 @@ void throwError(char *message, char *file)
 char *getPermissions(mode_t mode)
 {
     char *p;
-    p = malloc(10);
+    p = (char *)malloc(10);
     if (p == NULL)
         throwError("Error: Failure to dynamically allocate memory.", NULL);
     p[0] = '-';
@@ -37,7 +37,6 @@ char *getPermissions(mode_t mode)
     p[7] = (mode & S_IROTH) ? 'r' : '-';
     p[8] = (mode & S_IWOTH) ? 'w' : '-';
     p[9] = (mode & S_IXOTH) ? 'x' : '-';
-
     return p;
 }
 
@@ -49,14 +48,14 @@ void readDir(char *directory)
     struct group *grp;
     struct passwd *usr;
     struct tm fileTime, nowTime;
-    char path[1024], link[1024], date[80], *group, *user, *perms;
+    char path[4096], link[4096], date[80], *group, *user, *perms;
     mode_t mode;
     time_t now = time(NULL);
 
     dir = opendir(directory);
     if (dir == NULL)
     {
-        throwError("Unable to open directory", directory);
+        throwError("Error: Unable to open directory", directory);
     }
 
     while ((sd = readdir(dir)) != NULL)
@@ -67,13 +66,17 @@ void readDir(char *directory)
             throwError("Error: Couldn't get stats for a path/file", path);
         };
 
-        grp = getgrgid(buf.st_gid);
-        // add error catching for group
+        if ((grp = getgrgid(buf.st_gid)) == NULL)
+        {
+            throwError("Error: Could not get the group associated with a file/directroy", directory);
+        };
+
+        if ((usr = getpwuid(buf.st_uid)) == NULL)
+        {
+            throwError("Error: Could not get the user associated with a file/directroy", directory);
+        };
+
         group = grp->gr_name;
-
-        usr = getpwuid(buf.st_uid);
-        // add error catching fro user
-
         user = usr->pw_name;
         mode = buf.st_mode;
 
@@ -99,36 +102,39 @@ void readDir(char *directory)
             else if (strcmp(sd->d_name, ".") == 0)
             {
                 perms[0] = 'd';
-                printf("%llu\t%lli %s\t%hu %s\t%8s\t%12lli %s %s\n", buf.st_ino, buf.st_blocks, perms, buf.st_nlink, user, group, buf.st_size, date, directory);
+                printf("%llu%9lli %s%5hu %s%15s%20lli %s %s\n", buf.st_ino, buf.st_blocks, perms, buf.st_nlink, user, group, buf.st_size, date, directory);
             }
         }
         else if (S_ISREG(mode))
         {
             perms[0] = '-';
-            printf("%llu\t%lli %s\t%hu %s\t%8s\t%12lli %s %s\n", buf.st_ino, buf.st_blocks, perms, buf.st_nlink, user, group, buf.st_size, date, path);
+            printf("%llu%9lli %s%5hu %s%15s%20lli %s %s\n", buf.st_ino, buf.st_blocks, perms, buf.st_nlink, user, group, buf.st_size, date, path);
         }
         else if (S_ISLNK(mode))
         {
             perms[0] = 'l';
-            ssize_t len = readlink(path, link, 1023);
+            ssize_t len = readlink(path, link, 4095);
             if (len < 0)
             {
-                throwError("Could not read path of symbolic link", path);
+                throwError("Error: Could not read path of symbolic link", path);
             }
             else
             {
                 link[len] = '\0';
             }
-            printf("%llu\t%lli %s\t%hu %s\t%8s\t%12lli %s %s -> %s\n", buf.st_ino, buf.st_blocks, perms, buf.st_nlink, user, group, buf.st_size, date, path, link);
+            printf("%llu%9lli %s%5hu %s%15s%20lli %s %s -> %s\n", buf.st_ino, buf.st_blocks, perms, buf.st_nlink, user, group, buf.st_size, date, path, link);
         }
         else
         {
-            throwError("This type of file is not yet supported", NULL);
+            throwError("Error: This type of file is not yet supported", NULL);
         }
 
         free(perms);
     }
-    closedir(dir);
+    if (closedir(dir) < 0)
+    {
+        throwError("Error: Unable to close directory", directory);
+    }
 }
 
 int main(int argc, char *argv[])
