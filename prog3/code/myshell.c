@@ -14,6 +14,7 @@ void throwError(char *message, char *file)
     if (file)
         fprintf(stderr, "%s [%s]. Error code %i: %s.\n", message, file, errno, strerror(errno));
     else
+
         fprintf(stderr, "%s\n", message);
 }
 
