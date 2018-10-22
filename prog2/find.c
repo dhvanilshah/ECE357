@@ -11,7 +11,6 @@
 #include <grp.h>
 #include <time.h>
 
-// FUNCTION TO THROW ERRORS => INFLUENCED BY GRAPHQL QUERY ERROR REPORTING
 void throwError(char *message, char *file)
 {
     if (file)
@@ -47,6 +46,7 @@ void readDir(char *directory)
     struct stat buf;
     struct group *grp;
     struct passwd *usr;
+
     struct tm fileTime, nowTime;
     char path[4096], link[4096], date[80], *group, *user, *perms;
     mode_t mode;
